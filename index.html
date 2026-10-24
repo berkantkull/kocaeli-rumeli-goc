@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koca-ili'den Rumeli'ye</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --panel: #ffffff;
+    --text: #22201c;
+    --muted: #6b665c;
+    --border: #e2ddd2;
+    --kocaeli: #b4472f;
+    --suleyman: #2f5f8a;
+    --murad: #2e7d5b;
+    --hover: #f1ede4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1a18;
+      --panel: #252421;
+      --text: #ece8df;
+      --muted: #a39d90;
+      --border: #3a3833;
+      --kocaeli: #e07a5f;
+      --suleyman: #7fb0dc;
+      --murad: #6cc59a;
+      --hover: #2f2d29;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1a18;
+    --panel: #252421;
+    --text: #ece8df;
+    --muted: #a39d90;
+    --border: #3a3833;
+    --kocaeli: #e07a5f;
+    --suleyman: #7fb0dc;
+    --murad: #6cc59a;
+    --hover: #2f2d29;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 { margin: 0; font-size: 1.15rem; font-weight: 650; }
+  header p { margin: 4px 0 0; font-size: .85rem; color: var(--muted); }
+  main { flex: 1; display: flex; min-height: 0; }
+  #map { flex: 1; min-height: 300px; }
+  aside {
+    width: 400px;
+    max-width: 100%;
+    overflow-y: auto;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  aside h2 { font-size: 1rem; margin: 0 0 4px; }
+  aside h3 { font-size: .8rem; margin: 18px 0 4px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  aside .alt { color: var(--muted); font-size: .82rem; margin: 0 0 12px; line-height: 1.45; }
+  .filtre { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+  .filtre-baslik { font-size: .75rem; color: var(--muted); margin: 0 0 4px; }
+  .filtre button {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: .8rem;
+    cursor: pointer;
+  }
+  .filtre button.aktif { background: var(--text); border-color: var(--text); color: var(--panel); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
+  td.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.tik { cursor: pointer; }
+  tr.tik:hover { background: var(--hover); }
+  .etiket { color: var(--muted); font-size: .78rem; }
+  .not {
+    margin-top: 16px;
+    font-size: .78rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    line-height: 1.45;
+  }
+  .lejant { display: flex; gap: 14px; font-size: .8rem; margin-bottom: 12px; flex-wrap: wrap; }
+  .lejant span::before {
+    content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 5px; vertical-align: -1px;
+  }
+  .lejant .k::before { background: var(--kocaeli); }
+  .lejant .s::before { background: var(--suleyman); }
+  .lejant .m::before { background: var(--murad); }
+  .ozet-kutular { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+  .ozet-kutular div { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .ozet-kutular b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .ozet-kutular span { font-size: .75rem; color: var(--muted); }
+  .geri { background: none; border: none; color: var(--suleyman); padding: 0; cursor: pointer; font-size: .82rem; margin-bottom: 8px; }
+  .leaflet-tooltip.etiket-harita {
+    background: transparent; border: none; box-shadow: none;
+    font-weight: 600; font-size: 12px; color: #222;
+    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+  }
+  .leaflet-tooltip.etiket-harita::before { display: none; }
+  @media (max-width: 760px) {
+    main { flex-direction: column; }
+    #map { flex: none; height: 55vh; }
+    aside { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 14px 16px; }
+    header { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Koca-ili Türkmenlerinin Rumeli'ye Göçü</h1>
+  <p>Kaynak: Hacer Ateş, "Koca-ili Türkmenlerinin Rumeli'nin İskânına Katkıları", <i>Osmanlı Araştırmaları</i> LXII (2023), Tablo I–IV</p>
+</header>
+<main>
+  <div id="map"></div>
+  <aside id="panel"></aside>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// VERİ
+// Nahiye konumları bugünkü merkezlere göre yaklaşıktır. "yaklasik: true" olanların
+// yeri kesin değildir (Çimbi'nin yeri tartışmalı; Abri ve Harala belirlenmedi).
+// ---------------------------------------------------------------------------
+const KOCAELI = {
+  izmit:   { ad: "İzmit",          lat: 40.765, lng: 29.940 },
+  gebze:   { ad: "Gebze",          lat: 40.802, lng: 29.430 },
+  kandira: { ad: "Kandıra",        lat: 41.071, lng: 30.153 },
+  sile:    { ad: "Şile",           lat: 41.176, lng: 29.612 },
+  yalova:  { ad: "Yalova",         lat: 40.655, lng: 29.276 },
+  ada:     { ad: "Ada ve Karasu",  lat: 40.781, lng: 30.403 },
+  yoros:   { ad: "Yoros",          lat: 41.172, lng: 29.088 },
+  iznik:   { ad: "İznik",          lat: 40.429, lng: 29.721 },
+};
+
+const DONEMLER = {
+  suleyman: { ad: "Süleyman Paşa dönemi", renk: "--suleyman" },
+  murad:    { ad: "I. Murad dönemi",      renk: "--murad" },
+};
+
+// tablo: makaledeki tablo; bolge: tablonun kapsadığı sancak; bugun: bugünkü yer
+const RUMELI = {
+  // Tablo I — Süleyman Paşa dönemi
+  cimbi:      { ad: "Çimbi",      donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.540, lng: 26.780, yaklasik: true, bugun: "Bolayır yakını (yeri tartışmalı)", kaynak: "MC, nr. O79, s. 96-98" },
+  bolayir:    { ad: "Bolayır",    donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.517, lng: 26.763, bugun: "Bolayır, Çanakkale", kaynak: "BOA, TT.d., nr. 75, s. 380-382" },
+  malkara:    { ad: "Malkara",    donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.891, lng: 26.903, bugun: "Malkara, Tekirdağ", kaynak: "BOA, TT.d., nr. 12, s. 212-232" },
+  abri:       { ad: "Abri",       donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.790, lng: 26.760, yaklasik: true, bugun: "Malkara'ya bağlı (yeri belirlenmedi)", kaynak: "MC, nr. O79, s. 106-166; BOA, TT.d., nr. 12, s. 16-35" },
+  eceovasi:   { ad: "Eceovası",   donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.184, lng: 26.357, bugun: "Eceabat, Çanakkale", kaynak: "BOA, TT.d., nr. 12, s. 45-96" },
+  evrese:     { ad: "Evreşe",     donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.590, lng: 26.850, bugun: "Evreşe, Gelibolu", kaynak: "BOA, TT.d., nr. 12, s. 129-171" },
+  harala:     { ad: "Harala",     donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.470, lng: 26.560, yaklasik: true, bugun: "Gelibolu yarımadası (yeri belirlenmedi)", kaynak: "MC, nr. O79, s. 110-167; BOA, TT.d., nr. 12, s. 37-44" },
+  kesan:      { ad: "Keşan",      donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.856, lng: 26.630, bugun: "Keşan, Edirne", kaynak: "MC, nr. O89, 58a-70a; BOA, TT.d., nr. 494, s. 364-389" },
+  hayrabolu:  { ad: "Hayrabolu",  donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 41.213, lng: 27.106, bugun: "Hayrabolu, Tekirdağ", kaynak: "BOA, TT.d., nr. 370, s. 278-285" },
+  tekfurdagi: { ad: "Tekfurdağı", donem: "suleyman", tablo: "I", bolge: "Gelibolu ve çevresi", lat: 40.978, lng: 27.511, bugun: "Tekirdağ", kaynak: "BOA, MAD, nr. 35, 39b-112b" },
+
+  // Tablo II — I. Murad dönemi, Paşa Livası sağ kolu
+  edirne:     { ad: "Edirne",           donem: "murad", tablo: "II", bolge: "Paşa Livası", lat: 41.677, lng: 26.555, bugun: "Edirne", kaynak: "BOA, TT.d., nr. 494, s. 101-152" },
+  dimetoka:   { ad: "Dimetoka",         donem: "murad", tablo: "II", bolge: "Paşa Livası", lat: 41.349, lng: 26.497, bugun: "Didymoteicho, Yunanistan", kaynak: "BOA, TD., nr. 20, s. 157-277" },
+  ipsala:     { ad: "İpsala",           donem: "murad", tablo: "II", bolge: "Paşa Livası", lat: 40.921, lng: 26.383, bugun: "İpsala, Edirne", kaynak: "BOA, TT.d., nr. 77, s. 360-372; TT.d., nr. 494, s. 310-348" },
+  ferecik:    { ad: "Ferecik",          donem: "murad", tablo: "II", bolge: "Paşa Livası", lat: 40.894, lng: 26.172, bugun: "Feres, Yunanistan", kaynak: "BOA, TT.d., nr. 494, s. 287-319" },
+  filibe:     { ad: "Filibe",           donem: "murad", tablo: "II", bolge: "Paşa Livası", lat: 42.142, lng: 24.749, bugun: "Plovdiv, Bulgaristan", kaynak: "BOA, TT.d., nr. 26, s. 93-94, 130-137" },
+  eskihisar:  { ad: "Zağra-i Eskihisar", donem: "murad", tablo: "II", bolge: "Paşa Livası", lat: 42.425, lng: 25.634, bugun: "Stara Zagora, Bulgaristan", kaynak: "BOA, TT.d., nr. 77, s. 474-537; TT.d., nr. 494, s. 422-451" },
+
+  // Tablo III — I. Murad dönemi, Vize sancağı
+  vize:       { ad: "Vize",       donem: "murad", tablo: "III", bolge: "Vize Sancağı", lat: 41.573, lng: 27.766, bugun: "Vize, Kırklareli", kaynak: "BOA, TD., nr. 370, s. 246-258" },
+  burgos:     { ad: "Burgos",     donem: "murad", tablo: "III", bolge: "Vize Sancağı", lat: 41.405, lng: 27.356, bugun: "Lüleburgaz, Kırklareli", kaynak: "BOA, TD., nr. 370, s. 289-297; TK.GM.d., nr. 200, s. 32b" },
+  corlu:      { ad: "Çorlu",      donem: "murad", tablo: "III", bolge: "Vize Sancağı", lat: 41.159, lng: 27.800, bugun: "Çorlu, Tekirdağ", kaynak: "BOA, TD., nr. 370, s. 292-297; TK.GM.d., nr. 366, s. 7b; TK.GM.d., nr. 200, s. 94a" },
+  kirkkilise: { ad: "Kırkkilise", donem: "murad", tablo: "III", bolge: "Vize Sancağı", lat: 41.735, lng: 27.225, bugun: "Kırklareli", kaynak: "BOA, TD., nr. 370, s. 268-273; TK.GM.d., nr. 366, s. 11b-15b" },
+
+  // Tablo IV — I. Murad dönemi, Çirmen sancağı
+  cirmen:     { ad: "Çirmen",          donem: "murad", tablo: "IV", bolge: "Çirmen Sancağı", lat: 41.717, lng: 26.217, bugun: "Ormenio, Yunanistan", kaynak: "BOA, MAD, nr. 35, 6b-39b, 119b-123b" },
+  haskoy:     { ad: "Hasköy",          donem: "murad", tablo: "IV", bolge: "Çirmen Sancağı", lat: 41.934, lng: 25.555, bugun: "Haskovo, Bulgaristan", kaynak: "BOA, MAD, nr. 35, 162a-204b; MAD, nr. 342, s. 79-91; MAD, nr. 549, s. 1-41" },
+  akcakizanlik: { ad: "Akçakızanlık",  donem: "murad", tablo: "IV", bolge: "Çirmen Sancağı", lat: 42.619, lng: 25.393, bugun: "Kazanlak, Bulgaristan", kaynak: "BOA, MAD, nr. 35, 205b-244a; MAD, nr. 549, s. 82-100" },
+  yenicezagra: { ad: "Yenice-i Zağra", donem: "murad", tablo: "IV", bolge: "Çirmen Sancağı", lat: 42.488, lng: 26.012, bugun: "Nova Zagora, Bulgaristan", kaynak: "BOA, MAD, nr. 549, s. 42-81; TT.d., nr. 385, s. 192-222" },
+};
+
+// Makale metnindeki toplamlar (karşılaştırma için)
+const MAKALE_TOPLAMLARI = {
+  "Gelibolu ve çevresi": 86,
+  "Paşa Livası": 61,
+  "Vize Sancağı": 27,
+  "Çirmen Sancağı": 49,
+};
+
+// Her satır: [Rumeli nahiyesi, Rumeli'deki köy, { Kocaeli nahiyesi: Kocaeli'deki karşılığı }, not]
+const KOYLER = [
+  // --- Tablo I ---
+  ["cimbi", "Hasan Bulgur", { izmit: "Bulgur" }],
+  ["cimbi", "Kalamiçe", { izmit: "Klamiçe" }],
+
+  ["bolayir", "Demircilü", { gebze: "Demircilü" }],
+  ["bolayir", "Cengerlü", { izmit: "Çengerlü", gebze: "Çenger", sile: "Cengerlü" }],
+
+  ["malkara", "Köpeklü", { yalova: "Köpek" }],
+  ["malkara", "Beyköy", { yoros: "Beylüköy" }],
+  ["malkara", "Aytemür", { sile: "Aydemir" }],
+  ["malkara", "Kalaycı", { izmit: "Kalaycılar" }],
+
+  ["abri", "Demircili", { gebze: "Demircilü" }],
+  ["abri", "Aydemir", { sile: "Aydemir" }],
+  ["abri", "Çavuş", { yoros: "Çavuşlu" }],
+  ["abri", "Umurbeyli", { izmit: "Umurköy", gebze: "Umurca", kandira: "Umurcalu", iznik: "Umurcanlu" }],
+  ["abri", "Yayla", { sile: "Yaylalu" }],
+  ["abri", "Karlu", { sile: "Karlu" }],
+  ["abri", "Kara Murad", { kandira: "Karaca Murad çft." }],
+  ["abri", "Şemseddin nd. Çekleşlü", { gebze: "Çerkeşlü" }],
+
+  ["eceovasi", "Kumköy", { izmit: "Kumluca / Kumluköy" }],
+  ["eceovasi", "Yalakova", { yalova: "Yalakâbâd" }],
+  ["eceovasi", "Keçili", { kandira: "Keçili" }],
+  ["eceovasi", "Tonuzcalu", { izmit: "D(T)onuzcu" }],
+
+  ["evrese", "Cenger Halil", { izmit: "Çengerlü", gebze: "Çenger", sile: "Cengerlü" }],
+  ["evrese", "Keçilü", { kandira: "Keçili" }],
+  ["evrese", "Karlu", { sile: "Karlu çft." }],
+  ["evrese", "Adilhan", { sile: "Adil" }],
+
+  ["harala", "Okçu", { iznik: "Ok-ı kebir" }],
+  ["harala", "Karlu", { sile: "Karlu" }],
+  ["harala", "Kozluca", { gebze: "Kozluca", ada: "Kozluca", iznik: "Kozluca" }],
+  ["harala", "Balaban", { kandira: "Balabancı", iznik: "Balaban" }],
+  ["harala", "Yahşi", { sile: "Yahşili" }],
+  ["harala", "Saruhanlı", { yalova: "Saruhanlu" }],
+  ["harala", "Yalakova", { yalova: "Yalakâbad" }],
+  ["harala", "Tuzdar", { izmit: "Tuzcu / Tuzcuköy" }],
+  ["harala", "Güney", { izmit: "Güney" }],
+  ["harala", "Esenlü", { ada: "Esenci" }],
+  ["harala", "Demirci", { gebze: "Demircilü" }],
+  ["harala", "Küçük Sinanlu", { kandira: "Sinanlı" }],
+
+  ["kesan", "Ballu", { sile: "Bollu" }],
+  ["kesan", "Barağı", { izmit: "Barak" }],
+  ["kesan", "Beyköy", { kandira: "Beyceköy" }],
+  ["kesan", "Kayağılu", { sile: "Kayağlu" }],
+  ["kesan", "Türkmen", { izmit: "Türkmen", kandira: "Türkmen" }],
+  ["kesan", "Kızılca", { kandira: "Kızılca", sile: "Kızılcaköy" }],
+  ["kesan", "Köse Aherlü", { izmit: "Aherlü" }],
+  ["kesan", "Ericeklü", { kandira: "Eriklü" }],
+  ["kesan", "Saruhan", { yalova: "Saruhanlu" }],
+  ["kesan", "Paşa Yiğit", { gebze: "Paşa Yiğit" }],
+  ["kesan", "Mürsel", { gebze: "Mürsellü" }],
+  ["kesan", "Sevindik", { gebze: "Sevindik" }],
+
+  ["hayrabolu", "Hisarbeyi", { izmit: "Hisarbeyi" }],
+  ["hayrabolu", "Sinanlı", { kandira: "Sinanlı" }],
+  ["hayrabolu", "Köselü", { izmit: "Köseler", gebze: "Köseler", kandira: "Köseler çft." }],
+  ["hayrabolu", "Umur Bey", { izmit: "Umurköy", gebze: "Umurca", kandira: "Umurcalu", iznik: "Umurcanlu" }],
+  ["hayrabolu", "Kara Danişmend", { kandira: "Danişmendoğlu + Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["hayrabolu", "Kındamış", { iznik: "Kandemiş" }],
+  ["hayrabolu", "Çengerlü", { izmit: "Çengerlü", gebze: "Çenger", sile: "Cengerlü" }],
+  ["hayrabolu", "Gündüzlü", { kandira: "Gündüzlü", iznik: "Gündüzlü" }],
+  ["hayrabolu", "Danişmendlü", { kandira: "Danişmendoğlu + Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["hayrabolu", "Menteşe", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+
+  ["tekfurdagi", "Ahmedekli", { izmit: "Ahmedlü", gebze: "Ahmedlü", sile: "Ahmedlü" }],
+  ["tekfurdagi", "Asilbeyli", { sile: "Asılbey çft." }],
+  ["tekfurdagi", "Aydoğmuş", { ada: "Aydoğan", iznik: "Aydoğdu" }],
+  ["tekfurdagi", "Banaralı", { izmit: "Banara" }],
+  ["tekfurdagi", "Bıyıklı Ali", { sile: "Bıyıklı Ali", yoros: "Bıyıklı Ali" }],
+  ["tekfurdagi", "Danişmendli", { gebze: "Danişmendviranı", kandira: "Danişmendoğlu + Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["tekfurdagi", "Demircili", { izmit: "Demircilü", gebze: "Demircilü", sile: "Demircilü" }],
+  ["tekfurdagi", "Esenli", { yoros: "Esenci" }],
+  ["tekfurdagi", "Fakraoğlu", { izmit: "Fakraoğlu" }],
+  ["tekfurdagi", "Kapaklı", { sile: "Kabaklu" }],
+  ["tekfurdagi", "Kara Musalı", { sile: "Kara Musa" }],
+  ["tekfurdagi", "Hamzacalı", { sile: "Hamzalu", iznik: "Hamza Bey" }],
+  ["tekfurdagi", "Karaca Murat", { kandira: "Karaca Murad çft.", yalova: "Kara Muradlu" }],
+  ["tekfurdagi", "Kalaycı", { izmit: "Kalaycılılar" }],
+  ["tekfurdagi", "Karasevindik", { gebze: "Sevindik" }],
+  ["tekfurdagi", "Kındamış", { iznik: "Kandemiş" }],
+  ["tekfurdagi", "Kınıklı", { kandira: "Kınık" }],
+  ["tekfurdagi", "Koyunluca Ali", { yalova: "Koyunluca" }],
+  ["tekfurdagi", "Köpekli", { yalova: "Köpek" }],
+  ["tekfurdagi", "Kutluca", { gebze: "Kutluca", kandira: "Kutlu", ada: "Kutluca-ı kebir / sağir" }],
+  ["tekfurdagi", "Kocalar nd. Melekler", { izmit: "Melek", gebze: "Kocalar" }],
+  ["tekfurdagi", "Menteşelü", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+  ["tekfurdagi", "Naib İshak", { izmit: "Naib İshak çft.", gebze: "İshaklu", kandira: "Naib İshak / Şeyh İshak çft.", yoros: "İshaklı" }],
+  ["tekfurdagi", "Osmanlı", { kandira: "Osmanlu" }],
+  ["tekfurdagi", "Sekbanlı", { izmit: "Sekbanlu", sile: "Sekban", yoros: "Sekbanlu" }],
+  ["tekfurdagi", "Umur", { izmit: "Umurköy", gebze: "Umurca", kandira: "K. Umurlu / Umurcalu", iznik: "Umurcanlu" }],
+  ["tekfurdagi", "Paşa Yiğit", { gebze: "Paşa Yiğit" }],
+  ["tekfurdagi", "Yazır", { gebze: "Yazır" }],
+
+  // --- Tablo II: Paşa Livası ---
+  ["edirne", "Akpınar", { gebze: "Akpınar" }],
+  ["edirne", "Saruhan", { yalova: "Saruhanlu" }],
+  ["edirne", "Küçük Saruhanlu", { yalova: "Saruhanlu" }],
+  ["edirne", "Büyük Saruhanlu", { yalova: "Saruhanlu" }],
+  ["edirne", "Çağırgan", { sile: "Çağırgan Şahin" }],
+  ["edirne", "Geredelü", { gebze: "Geredelü", sile: "Geredelü" }],
+  ["edirne", "Hatib", { kandira: "Hatiblü", yalova: "Hatiblü" }],
+  ["edirne", "Hacı Danişmend", { gebze: "Danişmendviranı", kandira: "Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["edirne", "Hamza Beylü", { iznik: "Hamza Bey" }],
+  ["edirne", "İnceler", { kandira: "İncelü" }],
+
+  ["dimetoka", "Saruhanlu", { yalova: "Saruhanlu" }],
+  ["dimetoka", "Kara İshaklu", { gebze: "İshaklu", kandira: "Naib İshak", yoros: "İshaklu" }],
+  ["dimetoka", "Saruhan", { yalova: "Saruhanlu" }],
+  ["dimetoka", "Demircilü", { gebze: "Demircilü" }],
+  ["dimetoka", "Çengellü çft.", { izmit: "Çenger", gebze: "Çenger", sile: "Cengerlü çft." }],
+  ["dimetoka", "Hisar", { izmit: "Hisarbey" }],
+  ["dimetoka", "Danişmendlü", { gebze: "Danişmendviranı", kandira: "Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["dimetoka", "Geredelü", { gebze: "Geredelü", sile: "Geredelü" }],
+  ["dimetoka", "Kutluca (nd. Bazarlubey)", { gebze: "Kutluca", kandira: "Kutlu", ada: "Kutluca" }],
+  ["dimetoka", "Demürler", { yoros: "Demirciler" }],
+  ["dimetoka", "Çavuş", { yoros: "Çavuşlu" }],
+  ["dimetoka", "Saru Danişmend", { kandira: "Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["dimetoka", "Bektaş", { gebze: "Bektaşlu" }],
+  ["dimetoka", "Asılhan", { gebze: "Asılhan" }],
+  ["dimetoka", "Paşa Yiğit", { gebze: "Paşa Yiğit" }],
+  ["dimetoka", "Hatiblü", { yalova: "Hatiblü" }],
+  ["dimetoka", "Kazancı", { iznik: "Kazan" }],
+  ["dimetoka", "Kara Musa", { sile: "Kara Musalı" }],
+  ["dimetoka", "Sülemiş", { kandira: "Sülelü (?)" }],
+  ["dimetoka", "Almalu", { gebze: "Almacık" }],
+  ["dimetoka", "Yeniceköy", { gebze: "Yenice", kandira: "Yeniceköy", yoros: "Yenice", iznik: "Yenice" }],
+  ["dimetoka", "Koyunlu", { yalova: "Koyunluca" }],
+  ["dimetoka", "Çavuş", { yoros: "Çavuşlu" }],
+  ["dimetoka", "Sığırcılı", { kandira: "Sığırlık" }],
+
+  ["ipsala", "Orhan", { kandira: "Orhanlu" }],
+  ["ipsala", "Balaban", { kandira: "Balabancı", iznik: "Balaban" }],
+  ["ipsala", "Bıyıklı", { sile: "Bıyıklı Ali", yoros: "Bıyıklı Ali" }],
+  ["ipsala", "Yazır", { gebze: "Yazır" }],
+  ["ipsala", "Umurbey", { izmit: "Umurköy", gebze: "Umurca", kandira: "Umurcalu", iznik: "Umurcanlu" }],
+  ["ipsala", "Hatun pınarı", { kandira: "Hatun alanı" }],
+  ["ipsala", "Osmanlu", { kandira: "Osmanlu" }],
+  ["ipsala", "Çavuş", { yoros: "Çavuşlu" }],
+  ["ipsala", "Sarucalu", { kandira: "Sarucalı" }],
+  ["ipsala", "Hasköy nd. Köpeklü", { yalova: "Köpek" }],
+
+  ["ferecik", "Menteşelü", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+  ["ferecik", "İsalu", { sile: "İsalar" }],
+  ["ferecik", "Hisar Beyi", { izmit: "Hisarbeyi" }],
+  ["ferecik", "Saruhanlu", { yalova: "Saruhanlu" }],
+  ["ferecik", "Saruca", { kandira: "Sarucalı" }],
+  ["ferecik", "Büyük Geredelü", { gebze: "Geredelü", sile: "Geredelü" }],
+  ["ferecik", "Küçük Geredelü", { gebze: "Geredelü", sile: "Geredelü" }],
+
+  ["filibe", "Umur", { izmit: "Umurköy", gebze: "Umurca", kandira: "Umurcalu", iznik: "Umurcanlu" }],
+  ["filibe", "Menteşelü", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+  ["filibe", "Aleksi", { kandira: "Aleksi nd. Kardal", sile: "Aleksi nd. Sadıklu", yalova: "Aleksi nd. İlyas" }],
+  ["filibe", "Veled-i Danişmend", { gebze: "Danişmendlü + Danişmendoğlu", kandira: "Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+
+  ["eskihisar", "Cengerlü", { izmit: "Cengerlü", gebze: "Cenger", sile: "Cengerlü" }],
+  ["eskihisar", "Orhanlu", { kandira: "Orhanlu" }],
+  ["eskihisar", "Kulfalca", { yoros: "Kulfallı" }],
+  ["eskihisar", "Danişmendlü", { gebze: "Danişmendlü + Danişmendoğlu", kandira: "Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+  ["eskihisar", "Köpekler", { yalova: "Köpek" }],
+  ["eskihisar", "Yaylacık", { izmit: "Yayla", yalova: "Yaylalu" }],
+
+  // --- Tablo III: Vize Sancağı ---
+  ["vize", "Köpeklü", { yalova: "Köpek" }],
+  ["vize", "Çavuşlu", { yoros: "Çavuşlu" }],
+  ["vize", "Küçük Sevindik", { gebze: "Sevindik" }],
+  ["vize", "Sarucalar", { kandira: "Sarucalı" }],
+  ["vize", "Danişmendlü", { kandira: "Danişmendlü", sile: "Danişmendlü", iznik: "Danişmendlü" }],
+
+  ["burgos", "Gündüzlü", { kandira: "Gündüzlü", iznik: "Gündüzlü" }],
+  ["burgos", "Köpeklü", { yalova: "Köpek" }],
+  ["burgos", "Sevindik", { gebze: "Sevindik" }],
+  ["burgos", "Sinanlu", { kandira: "Sinanlı" }],
+  ["burgos", "Muradlu", { yalova: "Kara Muradlu" }],
+
+  ["corlu", "Köpeklü", { yalova: "Köpek" }],
+  ["corlu", "Cengerlü", { izmit: "Cengerlü", gebze: "Cenger", sile: "Cengerlü" }],
+  ["corlu", "Balabanlu", { kandira: "Balabancı", iznik: "Balaban" }],
+  ["corlu", "Muradlu", { yalova: "Kara Muradlu" }],
+  ["corlu", "Kulfallu", { yoros: "Kulfallı" }],
+  ["corlu", "Kara Menteşe", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+  ["corlu", "Hüsünlü", { izmit: "Küçük Hüsünlü", yoros: "Hüseyinlü" }],
+  ["corlu", "Yazırlı / K. Yazır", { gebze: "Yazır" }],
+  ["corlu", "Büyük Sevindik", { gebze: "Sevindik" }],
+  ["corlu", "Gündüzlü", { kandira: "Gündüzlü", iznik: "Gündüzlü" }],
+
+  ["kirkkilise", "Kulfallı", { yoros: "Kulfallı" }],
+  ["kirkkilise", "Çavuş", { yoros: "Çavuşlu" }],
+  ["kirkkilise", "Kara Menteşe", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+  ["kirkkilise", "Büyük Saruhanlu", { izmit: "Saruhanlu", ada: "Saruhanlu" }],
+  ["kirkkilise", "Geredelü Büzürk", { gebze: "Geredelü", sile: "Geredelü" }],
+  ["kirkkilise", "Erikli", { kandira: "Eriklü çft.", sile: "Eriklü" }],
+  ["kirkkilise", "Elmacık", { gebze: "Elmacık", kandira: "Elmacık" }],
+  ["kirkkilise", "Keremüddin", { sile: "Keremüddin" }],
+
+  // --- Tablo IV: Çirmen Sancağı ---
+  ["cirmen", "Afluganlu", { izmit: "Eflağanlu" }],
+  ["cirmen", "Akviran", { gebze: "Akviran" }],
+  ["cirmen", "Akova", { sile: "Ağova" }],
+  ["cirmen", "Bayındır", { kandira: "Bayındır" }],
+  ["cirmen", "Delü-İlyas", { sile: "İlyaslı", yalova: "İlyas" }],
+  ["cirmen", "Donuzcılı", { izmit: "Donuzcu" }],
+  ["cirmen", "Hisarlı", { izmit: "Hisarbeyi" }],
+  ["cirmen", "Kınıklı", { kandira: "Kınık" }],
+  ["cirmen", "Kızıklı", { sile: "Kızık (Şahin)" }],
+  ["cirmen", "Kocaelinli", {}, "Bölgenin genel adını taşıyor (Kocaeli)"],
+  ["cirmen", "Menteşe", { izmit: "Menteşeköy", kandira: "Menteşe", sile: "Menteşeköy" }],
+  ["cirmen", "Naib İshak", { kandira: "Naib İshak" }],
+  ["cirmen", "Osmanlı", { kandira: "Osmanlu" }],
+  ["cirmen", "Saruhanlu", { yalova: "Saruhanlu" }],
+  ["cirmen", "Yağmurca", { ada: "Yağmurlu" }],
+  ["cirmen", "Yahşi-beyli", { sile: "Yahşili" }],
+  ["cirmen", "Yayacık", { gebze: "Yayalar" }],
+  ["cirmen", "Yeni-Yayalar", { gebze: "Yayalar" }],
+
+  ["haskoy", "Adil", { sile: "Adil çft.", yalova: "Adil" }],
+  ["haskoy", "Almalı", { gebze: "Almacık" }],
+  ["haskoy", "Asılbey (Doğancılı)", { sile: "Asılbey çft." }],
+  ["haskoy", "Asılhan", { gebze: "Asılhan" }],
+  ["haskoy", "Bulduk", { gebze: "Buldukoğlu", sile: "Bulduk" }],
+  ["haskoy", "T(D)emirci", { izmit: "Demirci" }],
+  ["haskoy", "Dağeri (Pusadlı)", { iznik: "Dağeri" }],
+  ["haskoy", "Büyük-Aytemür", { sile: "Aydemir" }],
+  ["haskoy", "Donuzlu (Ereğliköyü)", { izmit: "Donuzcu" }],
+  ["haskoy", "İshak Fakih", { izmit: "Naib İshak çft.", kandira: "Naib İshak", yoros: "İshaklı" }],
+  ["haskoy", "Kalkanlı", { izmit: "Kalkanlu" }],
+  ["haskoy", "Kazancı", { iznik: "Kazan" }],
+  ["haskoy", "Temirciler", { yoros: "Demirciler" }],
+  ["haskoy", "Köpekli", { yalova: "Köpek" }],
+  ["haskoy", "Kutlu", { gebze: "Kutluca", kandira: "Kutlu", ada: "Kutluca" }],
+  ["haskoy", "Kutluca", { gebze: "Kutluca", kandira: "Kutlu", ada: "Kutluca" }],
+  ["haskoy", "Kulfal (çiftlik)", { yoros: "Kulfallı" }],
+  ["haskoy", "Kozluca", { gebze: "Kozluca", ada: "Kozluca", iznik: "Kozluca" }],
+  ["haskoy", "Yahyalu", { gebze: "Yahya" }],
+  ["haskoy", "Eflaganlu", { izmit: "Eflağanlu" }],
+  ["haskoy", "Kargalık", { sile: "Kargalu" }],
+  ["haskoy", "Aydoğmuş / Delü-Polad", { ada: "Aydoğan", iznik: "Aydoğdu" }],
+
+  ["akcakizanlik", "Efluganlu", { izmit: "Eflağanlu" }],
+  ["akcakizanlik", "Okçular", { iznik: "Ok-ı kebir" }],
+  ["akcakizanlik", "Sarucalı", { kandira: "Sarucalı" }],
+  ["akcakizanlik", "Umurca / Umurcalar", { izmit: "Umurköy", gebze: "Umurca", kandira: "Umurcalu", iznik: "Umurcanlu" }],
+  ["akcakizanlik", "Doğancı", { gebze: "Doğancı" }],
+  ["akcakizanlik", "Saruhanlı", { yalova: "Saruhanlu" }],
+
+  ["yenicezagra", "Eflaganlu", { izmit: "Eflağanlu" }],
+  ["yenicezagra", "Çerkeşlü", { gebze: "Çerkeşlü" }],
+  ["yenicezagra", "Kargalık", { sile: "Kargalu" }],
+  ["yenicezagra", "Karlı", { izmit: "Karlu", yalova: "Karlu" }],
+];
+
+// ---------------------------------------------------------------------------
+// HARİTA
+// ---------------------------------------------------------------------------
+const css = getComputedStyle(document.documentElement);
+const renk = (ad) => css.getPropertyValue(ad).trim();
+const donemRengi = (r) => renk(DONEMLER[RUMELI[r].donem].renk);
+
+const map = L.map("map", { zoomSnap: 0.25 });
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+  attribution: "Harita altlığı &copy; Esri",
+  maxZoom: 12,
+}).addTo(map);
+
+let secilenKocaeli = null;
+let secilenDonem = null;
+
+const koyGorunur = ([r, , e]) =>
+  (!secilenDonem || RUMELI[r].donem === secilenDonem) && (!secilenKocaeli || e[secilenKocaeli]);
+const gorunenKoyler = () => KOYLER.filter(koyGorunur);
+
+const cizgiKatmani = L.layerGroup().addTo(map);
+const noktaKatmani = L.layerGroup().addTo(map);
+
+// Çizgiyi hafifçe kavisli çizmek için basit bir ikinci derece eğri
+function kavis(a, b) {
+  const pts = [];
+  const orta = [(a[0] + b[0]) / 2 + 0.35, (a[1] + b[1]) / 2];
+  for (let t = 0; t <= 1.0001; t += 0.05) {
+    const lat = (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * orta[0] + t ** 2 * b[0];
+    const lng = (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * orta[1] + t ** 2 * b[1];
+    pts.push([lat, lng]);
+  }
+  return pts;
+}
+
+function ciz() {
+  cizgiKatmani.clearLayers();
+  noktaKatmani.clearLayers();
+
+  // Rumeli nahiyesi x Kocaeli nahiyesi -> köyler
+  const baglar = {};
+  for (const [r, koy, e] of gorunenKoyler()) {
+    for (const k of Object.keys(e)) {
+      if (secilenKocaeli && k !== secilenKocaeli) continue;
+      (baglar[r + "|" + k] ||= []).push(koy);
+    }
+  }
+
+  for (const [anahtar, koyler] of Object.entries(baglar)) {
+    const [r, k] = anahtar.split("|");
+    L.polyline(kavis([KOCAELI[k].lat, KOCAELI[k].lng], [RUMELI[r].lat, RUMELI[r].lng]), {
+      color: donemRengi(r),
+      weight: 1 + koyler.length * 1.1,
+      opacity: secilenKocaeli ? 0.7 : 0.3,
+    })
+      .bindTooltip(`${KOCAELI[k].ad} → ${RUMELI[r].ad}: ${koyler.length} köy`, { sticky: true })
+      .addTo(cizgiKatmani);
+  }
+
+  const rumeliSayilari = {};
+  for (const [r] of gorunenKoyler()) rumeliSayilari[r] = (rumeliSayilari[r] || 0) + 1;
+
+  for (const [id, n] of Object.entries(RUMELI)) {
+    const sayi = rumeliSayilari[id] || 0;
+    if (!sayi) continue;
+    L.circleMarker([n.lat, n.lng], {
+      radius: 5 + Math.sqrt(sayi) * 2.2,
+      color: "#fff", weight: 1.5,
+      fillColor: donemRengi(id), fillOpacity: 0.95,
+      dashArray: n.yaklasik ? "3 3" : null,
+    })
+      .bindTooltip(n.ad, { permanent: true, direction: "right", className: "etiket-harita", offset: [6, 0] })
+      .on("click", () => rumeliDetay(id))
+      .addTo(noktaKatmani);
+  }
+
+  for (const [id, n] of Object.entries(KOCAELI)) {
+    const sayi = KOYLER.filter(([r, , e]) => e[id] && (!secilenDonem || RUMELI[r].donem === secilenDonem)).length;
+    const soluk = secilenKocaeli && secilenKocaeli !== id;
+    L.circleMarker([n.lat, n.lng], {
+      radius: 5 + Math.sqrt(sayi) * 1.6,
+      color: "#fff", weight: 1.5,
+      fillColor: renk("--kocaeli"), fillOpacity: soluk ? 0.3 : 0.95,
+    })
+      .bindTooltip(n.ad, { permanent: true, direction: "right", className: "etiket-harita", offset: [6, 0] })
+      .on("click", () => {
+        secilenKocaeli = id;
+        ciz();
+        kocaeliDetay(id);
+      })
+      .addTo(noktaKatmani);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// YAN PANEL
+// ---------------------------------------------------------------------------
+const panel = document.getElementById("panel");
+let aktifGorunum = () => ozet();
+
+function filtreler() {
+  const btn = (tur, id, ad, aktif) =>
+    `<button data-tur="${tur}" data-id="${id}" class="${aktif ? "aktif" : ""}">${ad}</button>`;
+  return `
+    <p class="filtre-baslik">Dönem</p>
+    <div class="filtre">
+      ${btn("donem", "", "Tümü", !secilenDonem)}
+      ${Object.entries(DONEMLER).map(([id, d]) => btn("donem", id, d.ad, secilenDonem === id)).join("")}
+    </div>
+    <p class="filtre-baslik">Kocaeli nahiyesi</p>
+    <div class="filtre">
+      ${btn("kocaeli", "", "Tümü", !secilenKocaeli)}
+      ${Object.entries(KOCAELI).map(([id, n]) => btn("kocaeli", id, n.ad, secilenKocaeli === id)).join("")}
+    </div>`;
+}
+
+function baglaFiltre() {
+  panel.querySelectorAll(".filtre button").forEach((b) =>
+    b.addEventListener("click", () => {
+      const deger = b.dataset.id || null;
+      if (b.dataset.tur === "donem") secilenDonem = deger;
+      else secilenKocaeli = deger;
+      ciz();
+      if (b.dataset.tur === "kocaeli") secilenKocaeli ? kocaeliDetay(secilenKocaeli) : ozet();
+      else aktifGorunum();
+    })
+  );
+}
+
+function eslesmeHucresi(e, not) {
+  if (not) return `<span class="etiket">${not}</span>`;
+  return Object.entries(e).map(([k, ad]) => `${ad} <span class="etiket">(${KOCAELI[k].ad})</span>`).join("<br>");
+}
+
+function ozet() {
+  aktifGorunum = ozet;
+  const koyler = gorunenKoyler();
+  const bolgeler = {};
+  for (const [id, n] of Object.entries(RUMELI)) {
+    const s = koyler.filter(([r]) => r === id).length;
+    if (!s) continue;
+    (bolgeler[n.bolge] ||= []).push([id, n, s]);
+  }
+  const bloklar = Object.entries(bolgeler)
+    .map(([bolge, liste]) => {
+      const toplam = liste.reduce((t, [, , s]) => t + s, 0);
+      const satirlar = liste
+        .sort((a, b) => b[2] - a[2])
+        .map(([id, n, s]) => `<tr class="tik" data-r="${id}"><td>${n.ad}${n.yaklasik ? " <span class='etiket'>(konum yaklaşık)</span>" : ""}<br><span class="etiket">${n.bugun}</span></td><td class="sayi">${s}</td></tr>`)
+        .join("");
+      const makale = !secilenKocaeli && MAKALE_TOPLAMLARI[bolge];
+      return `<h3>${bolge} · Tablo ${liste[0][1].tablo}</h3>
+        <table><tbody>${satirlar}
+        <tr><td><b>Toplam</b>${makale ? ` <span class="etiket">(makale metninde: ${makale})</span>` : ""}</td><td class="sayi"><b>${toplam}</b></td></tr>
+        </tbody></table>`;
+    })
+    .join("");
+
+  const nahiyeSayisi = Object.values(bolgeler).reduce((t, l) => t + l.length, 0);
+  panel.innerHTML = `
+    <h2>Genel bakış</h2>
+    <div class="ozet-kutular">
+      <div><b>${koyler.length}</b><span>köy</span></div>
+      <div><b>${nahiyeSayisi}</b><span>Rumeli nahiyesi</span></div>
+      <div><b>${Object.keys(bolgeler).length}</b><span>sancak / bölge</span></div>
+    </div>
+    <div class="lejant"><span class="k">Kocaeli nahiyesi</span><span class="s">Süleyman Paşa dönemi</span><span class="m">I. Murad dönemi</span></div>
+    ${filtreler()}
+    ${bloklar}
+    <div class="not">Çizgi kalınlığı iki nahiye arasındaki eşleşen köy sayısını gösterir. Bir noktaya ya da satıra tıklayarak köy listesini açabilirsiniz.
+    Kesikli kenarlı noktaların yeri kesin değildir. Bir Rumeli köyü birden fazla Kocaeli nahiyesindeki köyle eşleşebildiği için çizgilerin toplamı köy sayısından fazladır.
+    Veri, makaledeki tablolardan aktarılmış bir taslaktır ve kontrol edilmelidir.</div>`;
+  baglaFiltre();
+  panel.querySelectorAll("tr.tik").forEach((tr) => tr.addEventListener("click", () => rumeliDetay(tr.dataset.r)));
+}
+
+function rumeliDetay(id) {
+  aktifGorunum = () => rumeliDetay(id);
+  const n = RUMELI[id];
+  const koyler = KOYLER.filter(([r, , e]) => r === id && (!secilenKocaeli || e[secilenKocaeli]));
+  const satirlar = koyler
+    .map(([, koy, e, not]) => `<tr><td><b>${koy}</b></td><td>${eslesmeHucresi(e, not)}</td></tr>`)
+    .join("");
+  panel.innerHTML = `
+    <button class="geri">← Genel bakış</button>
+    <h2>${n.ad}</h2>
+    <p class="alt">${DONEMLER[n.donem].ad} · ${n.bolge} · Tablo ${n.tablo}<br>
+      Bugün: ${n.bugun}<br>
+      ${koyler.length} köy${secilenKocaeli ? ` (${KOCAELI[secilenKocaeli].ad} ile eşleşen)` : ""}<br>
+      Kaynak: ${n.kaynak}</p>
+    <table><thead><tr><th>Rumeli'deki köy</th><th>Kocaeli'deki karşılığı</th></tr></thead><tbody>${satirlar}</tbody></table>`;
+  panel.querySelector(".geri").addEventListener("click", ozet);
+  map.panTo([n.lat, n.lng]);
+}
+
+function kocaeliDetay(id) {
+  aktifGorunum = () => kocaeliDetay(id);
+  const n = KOCAELI[id];
+  const koyler = gorunenKoyler().filter(([, , e]) => e[id]);
+  const satirlar = koyler
+    .map(([r, koy, e]) => `<tr class="tik" data-r="${r}"><td>${e[id]}</td><td><b>${koy}</b> <span class="etiket">(${RUMELI[r].ad})</span></td></tr>`)
+    .join("");
+  panel.innerHTML = `
+    <button class="geri">← Genel bakış</button>
+    <h2>${n.ad}</h2>
+    <p class="alt">Rumeli'de ${koyler.length} köyle eşleşiyor${secilenDonem ? ` (${DONEMLER[secilenDonem].ad})` : ""}</p>
+    ${filtreler()}
+    <table><thead><tr><th>Kocaeli'deki köy</th><th>Rumeli'deki karşılığı</th></tr></thead><tbody>${satirlar}</tbody></table>`;
+  panel.querySelector(".geri").addEventListener("click", () => { secilenKocaeli = null; ciz(); ozet(); });
+  baglaFiltre();
+  panel.querySelectorAll("tr.tik").forEach((tr) => tr.addEventListener("click", () => rumeliDetay(tr.dataset.r)));
+}
+
+ciz();
+ozet();
+map.fitBounds(L.latLngBounds([...Object.values(KOCAELI), ...Object.values(RUMELI)].map((n) => [n.lat, n.lng])), { padding: [30, 30] });
+</script>
+</body>
+</html>
