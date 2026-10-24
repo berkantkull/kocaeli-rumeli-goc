@@ -20,4 +20,4 @@ Haritadaki veriler makaledeki Tablo I–IV'ten aktarılmıştır:
 ## Notlar
 
 - Veri taslak hâlindedir ve kontrol edilmektedir.
-- Nahiyeler bugünkü merkezlerine göre yaklaşık konumlandırılmıştır. Çimbi, Abri ve Harala'nın yerleri kesin değildir.
+- Nahiyeler bugünkü merkezlerine göre yaklaşık konumlandırılmıştır. (Çimbi, Abri ve Harala'nın yerleri kesin değildir.)
