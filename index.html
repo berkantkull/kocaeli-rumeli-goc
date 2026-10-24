@@ -66,20 +66,18 @@
     flex-direction: column;
   }
   header {
-    padding: 14px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap;
+    padding: 10px 20px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
   }
-  header h1 { margin: 0; font-family: var(--serif); font-size: 1.35rem; font-weight: 650; letter-spacing: -.01em; }
-  header .giris { margin: 4px 0 0; font-size: .92rem; line-height: 1.45; max-width: 70ch; }
-  header .kunye { margin: 4px 0 0; font-size: .8rem; color: var(--muted); }
-  header .kunye a { color: inherit; }
+  header .metin { flex: 1 1 520px; min-width: 0; }
+  header h1 { margin: 0; font-family: var(--serif); font-size: 1.25rem; font-weight: 650; letter-spacing: -.01em; }
+  header .giris { margin: 2px 0 0; font-size: .85rem; line-height: 1.4; color: var(--muted); }
+  header .giris a { color: inherit; }
 
   .arac-cubugu {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
-    padding: 8px 20px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
     font-size: .85rem;
   }
   .grup { display: flex; align-items: center; gap: 8px; }
@@ -165,13 +163,14 @@
   .leaflet-bar a:hover { background: var(--hover); }
 
   @media (max-width: 760px) {
-    header { padding: 12px 16px 10px; }
-    header h1 { font-size: 1.15rem; }
-    header .giris { font-size: .85rem; }
-    .arac-cubugu { padding: 8px 16px; gap: 8px 14px; }
-    .segment button { padding: 5px 8px; }
+    header { padding: 8px 16px; }
+    header h1 { font-size: 1.05rem; }
+    header .giris { font-size: .78rem; }
+    .arac-cubugu { gap: 6px 12px; }
+    .grup > span { display: none; }
+    .segment button { padding: 4px 8px; }
     main { flex-direction: column; }
-    #map { flex: none; height: 52vh; }
+    #map { flex: none; height: 62vh; }
     aside { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 14px 16px 24px; }
     .lejant { font-size: .7rem; padding: 6px 8px; }
   }
@@ -179,20 +178,21 @@
 </head>
 <body>
 <header>
-  <h1>Koca-ili Türkmenlerinin Rumeli'ye Göçü</h1>
-  <p class="giris">XIV. yüzyılda Rumeli'de kurulan ve Kocaeli sancağındaki köylerle aynı adı taşıyan köyler. Tahrir defterlerindeki bu isim benzerlikleri, Kocaeli'den Rumeli'ye yapılan göçün izlerini gösteriyor.</p>
-  <p class="kunye">Kaynak: Hacer Ateş, "Koca-ili Türkmenlerinin Rumeli'nin İskânına Katkıları", <i>Osmanlı Araştırmaları</i> LXII (2023), Tablo I–IV · <a href="https://doi.org/10.18589/oa.1398363" target="_blank" rel="noopener">DOI</a></p>
+  <div class="metin">
+    <h1>Koca-ili Türkmenlerinin Rumeli'ye Göçü</h1>
+    <p class="giris">XIV. yüzyılda Rumeli'de kurulan ve Kocaeli'deki köylerle aynı adı taşıyan köyler; tahrir defterlerindeki bu isim benzerlikleri göçün izlerini gösteriyor. Kaynak: Hacer Ateş, <i>Osmanlı Araştırmaları</i> LXII (2023), Tablo I–IV · <a href="https://doi.org/10.18589/oa.1398363" target="_blank" rel="noopener">DOI</a></p>
+  </div>
+  <div class="arac-cubugu">
+    <div class="grup">
+      <span>Dönem</span>
+      <div class="segment" id="donem-secimi"></div>
+    </div>
+    <div class="grup">
+      <span>Kocaeli nahiyesi</span>
+      <select id="kocaeli-secimi" aria-label="Kocaeli nahiyesi"></select>
+    </div>
+  </div>
 </header>
-<div class="arac-cubugu">
-  <div class="grup">
-    <span>Dönem</span>
-    <div class="segment" id="donem-secimi"></div>
-  </div>
-  <div class="grup">
-    <span>Kocaeli nahiyesi</span>
-    <select id="kocaeli-secimi"></select>
-  </div>
-</div>
 <main>
   <div id="map"></div>
   <aside id="panel"></aside>
@@ -747,7 +747,7 @@ function filtreleriCiz() {
       aktifGorunum();
     })
   );
-  kocaeliSecimi.innerHTML = `<option value="">Tümü</option>` +
+  kocaeliSecimi.innerHTML = `<option value="">Tüm Kocaeli nahiyeleri</option>` +
     Object.entries(KOCAELI).map(([id, n]) => `<option value="${id}" ${secilenKocaeli === id ? "selected" : ""}>${n.ad}</option>`).join("");
 }
 kocaeliSecimi.addEventListener("change", () => kocaeliSec(kocaeliSecimi.value || null));
