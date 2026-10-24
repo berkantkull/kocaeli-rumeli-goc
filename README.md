@@ -6,9 +6,7 @@ Kocaeli sancağındaki köylerle aynı adı taşıyan Rumeli köylerini göstere
 
 ## Kaynak
 
-Hacer Ateş, "Koca-ili Türkmenlerinin Rumeli'nin İskânına Katkıları",
-*Osmanlı Araştırmaları / The Journal of Ottoman Studies*, LXII (2023), s. 1-46.
-DOI: [10.18589/oa.1398363](https://doi.org/10.18589/oa.1398363)
+Ateş, H. (2023). Koca-ili Türkmenlerinin Rumeli’nin İskânına Katkıları. *Osmanlı Araştırmaları, 62*(62), 1-46. https://doi.org/10.18589/oa.1398363
 
 Haritadaki veriler makaledeki Tablo I–IV'ten aktarılmıştır:
 
